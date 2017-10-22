@@ -50,19 +50,29 @@ void Player::DesenhaCirc(GLint radius, GLfloat R, GLfloat G, GLfloat B)
         y = radius * sin(0);
         glVertex3f(x, y, 0);
     glEnd();
+    glPointSize(3);
 }
 
 void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLeg, GLfloat thetaGun, GLfloat thetaPlayer)
 {
+    if(inJump){
+        double jumpTime = (glutGet(GLUT_ELAPSED_TIME) - jumpInitTime)/1000.0;
+        if(jumpTime < 2){
+            inJumpScale = 1 + (.5 * (jumpTime*(2 - jumpTime)));
+        }else{
+            inJumpScale = 1;
+            inJump = false;
+        }
+    }
     glPushMatrix();
 
-        glScalef( inJumpScale, inJumpScale, 1);
-        glTranslatef(x, y, 0);
         glRotatef(thetaPlayer, 0, 0, 1);
+        glTranslatef(x, y, 0);
+        glScalef( inJumpScale, inJumpScale, 1);
 
         glPushMatrix();
 
-            //Desenha perna direita
+            // Desenha perna direita
             glTranslatef(.6 * radius, 0, 0);
             glScalef(1, sin(thetaLeg), 1);
             DesenhaRect( legHeight * radius,  legWidth * radius, 0, 0, 0); 
@@ -89,6 +99,7 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
 
         glPushMatrix();
         
+            //Desenha corpo
             glScalef(1, bodyScale, 1);
             DesenhaCirc(radius, 0, 1, 0);
         
@@ -96,12 +107,14 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
 
         glPushMatrix();
         
+            //Desenha cabeca
             glScalef(headScale, headScale, 1);
             DesenhaCirc(radius, 0, 1, 0);
         
         glPopMatrix();
         
     glPopMatrix();
+
  
 }
 
@@ -119,7 +132,10 @@ void Player::RodaArma(GLfloat inc)
 
 void Player::MoveEmX(GLfloat dx)
 {
-    gX += dx;
+    GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
+    GLfloat elapsedTime = currentTime - lastTime;
+    lastTime = currentTime;
+    gX += dx * elapsedTime;
 }
 
 void Player::MoveEmY(GLfloat dy)
@@ -128,6 +144,14 @@ void Player::MoveEmY(GLfloat dy)
     gThetaLeg += dy * .04;
 }
 
+void Player::Pula()
+{
+    if(!inJump){
+        jumpInitTime = glutGet(GLUT_ELAPSED_TIME);
+        inJump = true;
+    }
+
+}
 GLfloat Player::ObtemX(){
     return gX;
 }

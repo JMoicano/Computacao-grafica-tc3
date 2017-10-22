@@ -1,7 +1,7 @@
 #ifndef ROBO_H
 #define	ROBO_H
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <GL/glut.h>
+#include <iostream>
 // Dimensions
 #define legHeight .7
 #define legWidth .4
@@ -18,6 +18,9 @@ class Player {
     GLfloat gThetaPlayer; 
     GLfloat radius;
     GLfloat inJumpScale;
+    GLfloat jumpInitTime;
+    GLfloat lastTime;
+    bool inJump;
 
 private:
     void DesenhaRect(  GLint height, GLint width, 
@@ -37,14 +40,18 @@ public:
         gThetaGun = 0; 
         gThetaPlayer = 0; 
         inJumpScale = 1;
+        inJump = false;
+        lastTime = glutGet(GLUT_ELAPSED_TIME);
     };
     void Desenha(){ 
         DesenhaPlayer(gX, gY, radius, gThetaLeg, gThetaGun, gThetaPlayer);
+        std::cout << radius << std::endl;
     };
     void RodaPlayer(GLfloat inc);
     void RodaArma(GLfloat inc);
     void MoveEmX(GLfloat dx);
     void MoveEmY(GLfloat dy);
+    void Pula();
     GLfloat ObtemX();
     GLfloat ObtemY();
 

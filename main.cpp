@@ -1,165 +1,349 @@
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <iostream>
+#include <string>
+#include <cstdlib>
+#include <cmath>
+#include <ctime>
+#include <list>
+
 #include <GL/glut.h>
-#include <stdlib.h>
-#include <math.h>
-#include <stdio.h>
+
+#include "Window.h"
+#include "Circle.h"
 #include "Player.h"
- 
-//Key status
-int keyStatus[256];
+#include "tinyxml2.h"
 
-// Window dimensions
-const GLint Width = 700;
-const GLint Height = 700;
+using namespace std;
+using namespace tinyxml2;
 
-// Viewing dimensions
-const GLint ViewingWidth = 500;
-const GLint ViewingHeight = 500;
- 
-int animate = 0;
+Player *player;
+Circle *arena[2];
+list<Circle*> highObstacles;
+list<Circle*> lowObstacles;
 
-Player player(0, 0, 30);
+int keyFlags[256];
+bool above = false;
+int aboveI = -1;
 
-void renderScene(void)
-{
-     // Clear the screen.
-     glClear(GL_COLOR_BUFFER_BIT);
- 
-     player.Desenha();
+double velTiro, velJogador;
 
-     glutSwapBuffers(); // Desenha the new frame of the game.
+bool inJump = false;
+bool canMove[4];
+
+int jumpInitTime;
+
+Window *window;
+
+void readParams(char* fileName){
+	XMLDocument file;
+
+	string fileNameS = fileName;
+
+	if(fileNameS[fileNameS.size() - 1] != '/'){
+		fileNameS + "/";
+	}
+
+	fileNameS.append("config.xml");
+
+	string endereco;
+
+	//Read XML file using tinyxml2
+	if(file.LoadFile(fileNameS.c_str())){
+		cout << "Erro ao ler arquivo XML" << endl;
+	}else{
+		XMLElement* rootTag = file.FirstChildElement();
+		string rootValue;
+
+
+		//Read parameters
+		for(XMLElement* it = rootTag->FirstChildElement(); it != NULL; it = it->NextSiblingElement()){
+
+			rootValue = it->Value();
+			
+			//Arena file params
+			if(rootValue.compare("arquivoDaArena") == 0){
+
+				endereco = it->Attribute("caminho");
+				endereco += it->Attribute("nome");
+				endereco += + ".";
+				endereco += it->Attribute("tipo");
+
+				std::cout << endereco << std::endl;
+				
+			}else if(rootValue.compare("jogador") == 0){
+
+				velTiro = it->FloatAttribute("velTiro");
+				velJogador = it->FloatAttribute("vel");
+			}
+		}
+
+
+	}
+
+	if(file.LoadFile(endereco.c_str())){
+		cout << "Erro ao ler arquivo da arena" << endl;
+	}else{
+		XMLElement* rootTag = file.FirstChildElement();
+		string rootValue;
+
+
+		//Read circle parameters
+		for(XMLElement* it = rootTag->FirstChildElement(); it != NULL; it = it->NextSiblingElement()){
+
+			rootValue = it->Value();
+			
+			//Circle params
+			if(rootValue.compare("circle") == 0){
+				string cor = it->Attribute("fill");
+
+				int x, y;
+				double radius;
+
+				x = it->IntAttribute("cx");
+				y = it->IntAttribute("cy");
+				radius = it->FloatAttribute("r");
+
+				Circle *c = new Circle(radius, x, -y, 0);
+
+				if(cor.compare("red") == 0){
+					c->setColor(1, 0, 0);
+					highObstacles.push_back(c);
+				}else if(cor.compare("black") == 0){
+					c->setColor(0, 0, 0);
+					lowObstacles.push_back(c);
+				}else if(cor.compare("blue") == 0){
+					window = new Window(2 * x, 2 * y);
+					c->setColor(0, 0, 1);
+					arena[0] = c;
+				}else if(cor.compare("white") == 0){
+					c->setColor(1, 1, 1);
+					arena[1] = c;
+				}else if(cor.compare("green") == 0){
+					player = new Player(x, -y, radius);
+				}
+			}
+		}
+	}
 }
 
-void keyPress(unsigned char key, int x, int y)
+void initWindow(void)
 {
-    switch (key)
-    {
-        case '1':
-             animate = !animate;
-             break;
-        case 'w':
-        case 'W':
-             keyStatus[(int)('w')] = 1; //Using keyStatus trick
-             break;
-        case 's':
-        case 'S':
-             keyStatus[(int)('s')] = 1; //Using keyStatus trick
-             break;
-        case 'a':
-        case 'A':
-             keyStatus[(int)('a')] = 1; //Using keyStatus trick
-             break;
-        case 'd':
-        case 'D':
-             keyStatus[(int)('d')] = 1; //Using keyStatus trick
-             break;
-        case 'f':
-        case 'F':
-             // player.RodaBraco1(-1);   //Without keyStatus trick
-             break;
-        case 'r':
-        case 'R':
-             // player.RodaBraco1(+1);   //Without keyStatus trick
-             break;
-        case 'g':
-        case 'G':
-             // player.RodaBraco2(-1);   //Without keyStatus trick
-             break;
-        case 't':
-        case 'T':
-             // player.RodaBraco2(+1);   //Without keyStatus trick
-             break;
-        case 'h':
-        case 'H':
-             // player.RodaBraco3(-1);   //Without keyStatus trick
-             break;
-        case 'y':
-        case 'Y':
-             // player.RodaBraco3(+1);   //Without keyStatus trick
-             break;
-        case 27 :
-             exit(0);
-    }
-    glutPostRedisplay();
-}
-
-void keyup(unsigned char key, int x, int y)
-{
-    keyStatus[(int)(key)] = 0;
-    glutPostRedisplay();
-}
-
-void ResetKeyStatus()
-{
-    int i;
-    //Initialize keyStatus
-    for(i = 0; i < 256; i++)
-       keyStatus[i] = 0; 
-}
-
-void init(void)
-{
-    ResetKeyStatus();
-    // The color the windows will redraw. Its done to erase the previous frame.
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Black, no opacity(alpha).
- 
-    glMatrixMode(GL_PROJECTION); // Select the projection matrix    
-    glOrtho(-(ViewingWidth/2),     // X coordinate of left edge             
-            (ViewingWidth/2),     // X coordinate of right edge            
-            -(ViewingHeight/2),     // Y coordinate of bottom edge             
-            (ViewingHeight/2),     // Y coordinate of top edge             
-            100,     // Z coordinate of the “near” plane            
-            -100);    // Z coordinate of the “far” plane
+	for (int i = 0; i < 256; ++i)
+	{
+		keyFlags[i] = 0;
+	}
+	canMove[0] = canMove[1] = canMove[2] = canMove[3] = true;
+	 // select background color 
+	glClearColor (1, 1, 1, 0.0);
+	 // inicializar sistema de viz. 
+	glMatrixMode(GL_PROJECTION);
+	glOrtho(arena[0]->getCenterX() - arena[0]->getRadius(), arena[0]->getCenterX() + arena[0]->getRadius(), arena[0]->getCenterY() - arena[0]->getRadius(),arena[0]->getCenterY() + arena[0]->getRadius(), -1.0, 1.0);
     glMatrixMode(GL_MODELVIEW); // Select the projection matrix    
-    glLoadIdentity();
-      
+	glLoadIdentity();	
 }
 
-void idle(void)
-{
-    //Treat keyPress
-    if(keyStatus[(int)('w')])
-    {
-        player.MoveEmY(1.0);
-    }
-    if(keyStatus[(int)('s')])
-    {
-        player.MoveEmY(-1.0);
-    }
-    if(keyStatus[(int)('a')])
-    {
-        player.RodaPlayer(1.0);
-    }
-    if(keyStatus[(int)('d')])
-    {
-        player.RodaPlayer(-1.0);
-    }
-    
-    glutPostRedisplay();
+void keyPress(unsigned char key, int x, int y){
+	keyFlags[key] = 1;
 }
- 
-int main(int argc, char *argv[])
+
+void keyUp(unsigned char key, int x, int y){
+	keyFlags[key] = 0;
+}
+
+void drawCircle(Circle *circle){
+		 // Draw circle as polygon 
+	glColor3f (circle->getColorR(), circle->getColorG(), circle->getColorB());
+	glBegin(GL_POLYGON);
+	glVertex3f(circle->getCenterX(), circle->getCenterY(), 0.0); // center of circle
+	int resolution = 64;
+	for(int i = 0; i <= resolution;i++) { 
+		glVertex3f(
+		circle->getCenterX() + (circle->getRadius() * cos(i * 2 * M_PI / resolution) * sin(M_PI / 2)), 
+		circle->getCenterY() + (circle->getRadius() * sin(i * 2 * M_PI / resolution) * sin(M_PI / 2)),
+		circle->getCenterZ() + (circle->getRadius() * cos(M_PI / 2))
+		);
+	}
+	glEnd();
+
+}
+
+void display(void)
 {
-    // Initialize openGL with Double buffer and RGB color without transparency.
-    // Its interesting to try GLUT_SINGLE instead of GLUT_DOUBLE.
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
- 
-    // Create the window.
-    glutInitWindowSize(Width, Height);
-    glutInitWindowPosition(150,50);
-    glutCreateWindow("Tranformations 2D");
- 
-    // Define callbacks.
-    glutDisplayFunc(renderScene);
-    glutKeyboardFunc(keyPress);
-    glutIdleFunc(idle);
-    glutKeyboardUpFunc(keyup);
-    
-    init();
- 
-    glutMainLoop();
- 
-    return 0;
+	 // Clear pixels 
+	glClear (GL_COLOR_BUFFER_BIT);
+	
+	//Draw arena
+	drawCircle(arena[0]);
+	drawCircle(arena[1]);
+	
+	//Draw obstacles
+	for (list<Circle*>::iterator iter = highObstacles.begin(); iter != highObstacles.end(); ++iter)
+	{
+		drawCircle((*iter));
+	}
+	for (list<Circle*>::iterator iter = lowObstacles.begin(); iter != lowObstacles.end(); ++iter)
+	{
+		drawCircle((*iter));
+	}
+
+	//Draw player
+	player->Desenha();
+
+	/* Dont Wait! */
+	glutSwapBuffers();
+}
+
+double dist(Circle *c1, Circle *c2){
+	double distance = sqrt(pow(c1->getCenterX() - c2->getCenterX(), 2) + pow(c1->getCenterY() - c2->getCenterY(), 2));
+}
+
+void checkCollision(Circle *c1, Circle *c2, bool intern = false){
+	double distance = dist(c1, c2);
+
+	bool freeMove = intern ? distance < c1->getRadius() - c2->getRadius() : distance > c1->getRadius() + c2->getRadius();
+	
+	if(!freeMove){
+		canMove[0] = canMove[0] && (intern ? c2->getCenterX() > c1->getCenterX() : c2->getCenterX() < c1->getCenterX());
+		canMove[1] = canMove[1] && (intern ? c2->getCenterY() > c1->getCenterY() : c2->getCenterY() < c1->getCenterY());
+		canMove[2] = canMove[2] && (intern ? c2->getCenterX() < c1->getCenterX() : c2->getCenterX() > c1->getCenterX());
+		canMove[3] = canMove[3] && (intern ? c2->getCenterY() < c1->getCenterY() : c2->getCenterY() > c1->getCenterY());
+
+	}else{
+		canMove[0] = canMove[0] || intern;
+		canMove[1] = canMove[1] || intern;
+		canMove[2] = canMove[2] || intern;
+		canMove[3] = canMove[3] || intern;
+	}
+}
+
+void checkCollisionJumpable(Circle *c1, Circle*c2, int i){
+	double distance = dist(c1, c2);
+
+	if(above && aboveI != i){
+		return;
+	}
+
+	if(!inJump && !above){
+		checkCollision(c1, c2);
+	}else{
+		if(distance < c1->getRadius() + c2->getRadius()){
+			above = true;
+			aboveI = i;
+			if(inJump){
+				canMove[0] = canMove[0] || ( c2->getCenterX() > c1->getCenterX());
+				canMove[1] = canMove[1] || ( c2->getCenterY() > c1->getCenterY());
+				canMove[2] = canMove[2] || ( c2->getCenterX() < c1->getCenterX());
+				canMove[3] = canMove[3] || ( c2->getCenterY() < c1->getCenterY());
+			} else {
+				canMove[0] = canMove[0] || ( c2->getCenterX() > c1->getCenterX());
+				canMove[1] = canMove[1] || ( c2->getCenterY() > c1->getCenterY());
+				canMove[2] = canMove[2] || ( c2->getCenterX() < c1->getCenterX());
+				canMove[3] = canMove[3] || ( c2->getCenterY() < c1->getCenterY());
+			}
+
+		} else {
+			above = false;
+			aboveI = -1;
+		}
+	}
+
+}
+
+void idle(void){
+	float delta = window->getWidth()/700;
+	
+	// Circle *ifMoved = new Circle(playerRadius, player->getCenterX(), player->getCenterY(), 0);
+
+	// if(keyFlags['a']){
+	// 		ifMoved->addCenterX(-delta);
+	// }
+	// if(keyFlags['s']){
+	// 		ifMoved->addCenterY(-delta);
+	// }
+	// if(keyFlags['d']){
+	// 		ifMoved->addCenterX(+delta);
+	// }
+	// if(keyFlags['w']){
+	// 		ifMoved->addCenterY(+delta);
+	// }
+
+	// checkCollision(arena[0], ifMoved, true);
+	// checkCollision(arena[1], ifMoved);
+	// for (list<Circle*>::iterator iter = highObstacles.begin(); iter != highObstacles.end(); ++iter)
+	// {
+	// 	checkCollision((*iter), ifMoved);
+	// }
+	//  int i = 0;
+	// for (list<Circle*>::iterator iter = lowObstacles.begin(); iter != lowObstacles.end(); ++iter, ++i)
+	// {
+	// 	checkCollisionJumpable((*iter), ifMoved, i);
+	// }
+	
+	// checkJump();
+
+	// if(keyFlags['a']){
+	// 	if(canMove[0]){
+	// 		player->addCenterX(-delta);
+	// 	}
+	// }
+	// if(keyFlags['s']){
+	// 	if(canMove[1]){
+	// 		player->addCenterY(-delta);
+	// 	}
+	// }
+	// if(keyFlags['d']){
+	// 	if(canMove[2]){
+	// 		player->addCenterX(+delta);
+	// 	}
+	// }
+	// if(keyFlags['w']){
+	// 	if(canMove[3]){
+	// 		player->addCenterY(+delta);
+	// 	}
+	// }
+	// if(keyFlags['p']){
+	// 	if(!inJump){
+	// 		inJump = true;
+	// 		jumpInitTime = glutGet(GLUT_ELAPSED_TIME);;
+	// 	}
+	// }
+	//Treat keyPress
+    if(keyFlags[(int)('w')])
+    {
+        player->MoveEmY(velJogador);
+    }
+    if(keyFlags[(int)('s')])
+    {
+        player->MoveEmY(-velJogador);
+    }
+    if(keyFlags[(int)('a')])
+    {
+        player->RodaPlayer(velJogador);
+    }
+    if(keyFlags[(int)('d')])
+    {
+        player->RodaPlayer(-velJogador);
+    }
+    if(keyFlags[(int)('p')])
+    {
+         player->Pula();
+    }
+	glutPostRedisplay();
+}
+
+int main(int argc, char** argv){
+	readParams(argv[1]);
+	argc--;
+	argv = &argv[1];
+	glutInit(&argc, argv);
+	glutInitDisplayMode (GLUT_SINGLE |	GLUT_RGB);
+	glutInitWindowSize (window->getWidth(), window->getHeight());
+	glutInitWindowPosition (100, 100);
+	glutCreateWindow ("trabalhocg");
+	initWindow();
+	glutDisplayFunc(display);
+	glutKeyboardFunc(keyPress);
+	glutKeyboardUpFunc(keyUp);
+	glutIdleFunc(idle);
+	glutMainLoop();
+	return 0;
 }

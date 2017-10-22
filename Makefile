@@ -10,5 +10,5 @@ build: tinyxml2.o Circle.o Window.o Player.o
 	g++ -o trabalhocg main.cpp tinyxml2.o Circle.o Window.o Player.o -lglut -lGLU -lGL -lm
 
 clean:
-	rm tinyxml2.o Circle.o Window.o
+	rm tinyxml2.o Circle.o Window.o Player.o
 	rm trabalhocg
