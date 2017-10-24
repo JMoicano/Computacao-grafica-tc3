@@ -20,6 +20,7 @@ Circle *arena[2];
 list<Circle*> highObstacles;
 list<Circle*> lowObstacles;
 
+int lastXMouse;
 int keyFlags[256];
 bool above = false;
 int aboveI = -1;
@@ -67,8 +68,6 @@ void readParams(char* fileName){
 				endereco += + ".";
 				endereco += it->Attribute("tipo");
 
-				std::cout << endereco << std::endl;
-				
 			}else if(rootValue.compare("jogador") == 0){
 
 				velTiro = it->FloatAttribute("velTiro");
@@ -111,7 +110,7 @@ void readParams(char* fileName){
 					c->setColor(0, 0, 0);
 					lowObstacles.push_back(c);
 				}else if(cor.compare("blue") == 0){
-					window = new Window(2 * x, 2 * y);
+					window = new Window(2 * radius, 2 * radius);
 					c->setColor(0, 0, 1);
 					arena[0] = c;
 				}else if(cor.compare("white") == 0){
@@ -147,6 +146,11 @@ void keyPress(unsigned char key, int x, int y){
 
 void keyUp(unsigned char key, int x, int y){
 	keyFlags[key] = 0;
+}
+
+void passiveMotion(int x, int y){
+	player->RodaArma((int)((lastXMouse - x) * player->ObtemRaio() / window->getWidth()) * 8);
+	lastXMouse = x;
 }
 
 void drawCircle(Circle *circle){
@@ -340,6 +344,7 @@ int main(int argc, char** argv){
 	glutInitWindowPosition (100, 100);
 	glutCreateWindow ("trabalhocg");
 	initWindow();
+	glutPassiveMotionFunc(passiveMotion);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyPress);
 	glutKeyboardUpFunc(keyUp);

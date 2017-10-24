@@ -2,6 +2,7 @@
 #define	ROBO_H
 #include <GL/glut.h>
 #include <iostream>
+#include <cmath>
 // Dimensions
 #define legHeight .7
 #define legWidth .4
@@ -11,11 +12,13 @@
 #define headScale .6
 
 class Player {
-    GLfloat gX; 
-    GLfloat gY; 
-    GLfloat gThetaLeg; 
-    GLfloat gThetaGun; 
-    GLfloat gThetaPlayer; 
+    GLfloat gX;
+    GLfloat cX;
+    GLfloat gY;
+    GLfloat cY;
+    GLfloat gThetaLeg;
+    GLfloat gThetaGun;
+    GLfloat gThetaPlayer;
     GLfloat radius;
     GLfloat inJumpScale;
     GLfloat jumpInitTime;
@@ -23,9 +26,9 @@ class Player {
     bool inJump;
 
 private:
-    void DesenhaRect(  GLint height, GLint width, 
+    void DesenhaRect(  GLint height, GLint width,
                     GLfloat R, GLfloat G, GLfloat B);
-    void DesenhaCirc(  GLint radius, GLfloat R, 
+    void DesenhaCirc(  GLint radius, GLfloat R,
                     GLfloat G, GLfloat B);
     void DesenhaPernas(GLfloat x, GLfloat y, GLfloat gThetaLeg);
     void DesenhaPlayer(GLfloat gX, GLfloat gY, GLfloat radius,
@@ -33,19 +36,20 @@ private:
 
 public:
     Player(GLfloat posX, GLfloat posY, GLfloat r){
-        gX = posX; 
-        gY = posY; 
+        cX = posX;
+        cY = posY;
+        gX = 0;
+        gY = 0;
         radius = r;
-        gThetaLeg = 90; 
-        gThetaGun = 0; 
-        gThetaPlayer = 0; 
+        gThetaLeg = 90;
+        gThetaGun = 0;
+        gThetaPlayer = 0;
         inJumpScale = 1;
         inJump = false;
         lastTime = glutGet(GLUT_ELAPSED_TIME);
     };
-    void Desenha(){ 
+    void Desenha(){
         DesenhaPlayer(gX, gY, radius, gThetaLeg, gThetaGun, gThetaPlayer);
-        std::cout << radius << std::endl;
     };
     void RodaPlayer(GLfloat inc);
     void RodaArma(GLfloat inc);
@@ -54,6 +58,7 @@ public:
     void Pula();
     GLfloat ObtemX();
     GLfloat ObtemY();
+    GLfloat ObtemRaio();
 
 };
 

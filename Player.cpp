@@ -64,10 +64,12 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
             inJump = false;
         }
     }
+    double at = atan2(x, y);
+    std::cout << gY << std::endl;
     glPushMatrix();
 
+        glTranslatef(cX + x, cY + y, 0);
         glRotatef(thetaPlayer, 0, 0, 1);
-        glTranslatef(x, y, 0);
         glScalef( inJumpScale, inJumpScale, 1);
 
         glPushMatrix();
@@ -115,7 +117,7 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
         
     glPopMatrix();
 
- 
+    lastTime = glutGet(GLUT_ELAPSED_TIME);
 }
 
 void Player::RodaPlayer(GLfloat inc)
@@ -140,8 +142,12 @@ void Player::MoveEmX(GLfloat dx)
 
 void Player::MoveEmY(GLfloat dy)
 {
-    gY += dy;
-    gThetaLeg += dy * .04;
+    GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
+    GLfloat elapsedTime = currentTime - lastTime;
+    lastTime = currentTime;
+    gY += dy * elapsedTime + sin((90 + gThetaPlayer) * M_PI/180.0);
+    gX += dy * elapsedTime + cos((90 + gThetaPlayer) * M_PI/180.0);
+    gThetaLeg += dy * .04 * elapsedTime;
 }
 
 void Player::Pula()
@@ -158,4 +164,8 @@ GLfloat Player::ObtemX(){
 
 GLfloat Player::ObtemY(){
     return gY;
+}
+
+GLfloat Player::ObtemRaio(){
+    return radius;
 }
