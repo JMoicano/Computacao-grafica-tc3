@@ -65,7 +65,6 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
         }
     }
     double at = atan2(x, y);
-    std::cout << gY << std::endl;
     glPushMatrix();
 
         glTranslatef(cX + x, cY + y, 0);
@@ -122,7 +121,7 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
 
 void Player::RodaPlayer(GLfloat inc)
 {
-    gThetaPlayer += inc;
+    gThetaPlayer += inc * 5;
 }
 
 void Player::RodaArma(GLfloat inc)
@@ -145,8 +144,8 @@ void Player::MoveEmY(GLfloat dy)
     GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
     GLfloat elapsedTime = currentTime - lastTime;
     lastTime = currentTime;
-    gY += dy * elapsedTime + sin((90 + gThetaPlayer) * M_PI/180.0);
-    gX += dy * elapsedTime + cos((90 + gThetaPlayer) * M_PI/180.0);
+    gY += (dy + sin((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
+    gX += (dy + cos((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
     gThetaLeg += dy * .04 * elapsedTime;
 }
 
