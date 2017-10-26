@@ -13,9 +13,7 @@
 
 class Player {
     GLfloat gX;
-    GLfloat cX;
     GLfloat gY;
-    GLfloat cY;
     GLfloat gThetaLeg;
     GLfloat gThetaGun;
     GLfloat gThetaPlayer;
@@ -24,6 +22,7 @@ class Player {
     GLfloat jumpInitTime;
     GLfloat lastTime;
     bool inJump;
+    bool above;
 
 private:
     void DesenhaRect(  GLint height, GLint width,
@@ -36,16 +35,15 @@ private:
 
 public:
     Player(GLfloat posX, GLfloat posY, GLfloat r){
-        cX = posX;
-        cY = posY;
-        gX = 0;
-        gY = 0;
+        gX = posX;
+        gY = posY;
         radius = r;
         gThetaLeg = 90;
         gThetaGun = 0;
         gThetaPlayer = 0;
         inJumpScale = 1;
         inJump = false;
+        above = false;
         lastTime = glutGet(GLUT_ELAPSED_TIME);
     };
     void Desenha(){
@@ -54,11 +52,14 @@ public:
     void RodaPlayer(GLfloat inc);
     void RodaArma(GLfloat inc);
     void MoveEmX(GLfloat dx);
-    void MoveEmY(GLfloat dy);
+    void MoveEmY(GLfloat, bool[]);
     void Pula();
+    void DeterminaAcima(bool);
     GLfloat ObtemX();
     GLfloat ObtemY();
     GLfloat ObtemRaio();
+    bool EstaPulando();
+    bool EstaAcima();
 
 };
 

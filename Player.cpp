@@ -67,7 +67,7 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
     double at = atan2(x, y);
     glPushMatrix();
 
-        glTranslatef(cX + x, cY + y, 0);
+        glTranslatef(x, y, 0);
         glRotatef(thetaPlayer, 0, 0, 1);
         glScalef( inJumpScale, inJumpScale, 1);
 
@@ -139,13 +139,31 @@ void Player::MoveEmX(GLfloat dx)
     gX += dx * elapsedTime;
 }
 
-void Player::MoveEmY(GLfloat dy)
+void Player::MoveEmY(GLfloat dy, bool canMove[3])
 {
     GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
     GLfloat elapsedTime = currentTime - lastTime;
     lastTime = currentTime;
-    gY += (dy + sin((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
-    gX += (dy + cos((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
+    GLfloat yDelta = (dy + sin((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
+    GLfloat xDelta = (dy + cos((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
+    if(xDelta < 0){
+        if(canMove[0]){
+            gX += xDelta;
+        }
+    } else {
+        if(canMove[1]){
+            gX += xDelta;
+        }
+    }
+    if(yDelta > 0){
+        if(canMove[2]){
+            gY += yDelta;
+        }
+    } else {
+        if(canMove[3]){
+            gY += yDelta;
+        }
+    }
     gThetaLeg += dy * .04 * elapsedTime;
 }
 
@@ -167,4 +185,16 @@ GLfloat Player::ObtemY(){
 
 GLfloat Player::ObtemRaio(){
     return radius;
+}
+
+bool Player::EstaPulando(){
+    return inJump;
+}
+
+void Player::DeterminaAcima(bool acima){
+    above = acima;
+}
+
+bool Player::EstaAcima(){
+    return above;
 }

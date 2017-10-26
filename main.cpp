@@ -196,20 +196,20 @@ void display(void)
 	glutSwapBuffers();
 }
 
-double dist(Circle *c1, Circle *c2){
-	double distance = sqrt(pow(c1->getCenterX() - c2->getCenterX(), 2) + pow(c1->getCenterY() - c2->getCenterY(), 2));
+double dist(Circle *c1, Player *c2){
+	double distance = sqrt(pow(c1->getCenterX() - c2->ObtemX(), 2) + pow(c1->getCenterY() - c2->ObtemY(), 2));
 }
 
-void checkCollision(Circle *c1, Circle *c2, bool intern = false){
+void checkCollision(Circle *c1, Player *c2, bool intern = false){
 	double distance = dist(c1, c2);
 
-	bool freeMove = intern ? distance < c1->getRadius() - c2->getRadius() : distance > c1->getRadius() + c2->getRadius();
+	bool freeMove = intern ? distance < c1->getRadius() - c2->ObtemRaio() : distance > c1->getRadius() + c2->ObtemRaio();
 	
 	if(!freeMove){
-		canMove[0] = canMove[0] && (intern ? c2->getCenterX() > c1->getCenterX() : c2->getCenterX() < c1->getCenterX());
-		canMove[1] = canMove[1] && (intern ? c2->getCenterY() > c1->getCenterY() : c2->getCenterY() < c1->getCenterY());
-		canMove[2] = canMove[2] && (intern ? c2->getCenterX() < c1->getCenterX() : c2->getCenterX() > c1->getCenterX());
-		canMove[3] = canMove[3] && (intern ? c2->getCenterY() < c1->getCenterY() : c2->getCenterY() > c1->getCenterY());
+		canMove[0] = canMove[0] && (intern ? c2->ObtemX() > c1->getCenterX() : c2->ObtemX() < c1->getCenterX());
+		canMove[1] = canMove[1] && (intern ? c2->ObtemY() > c1->getCenterY() : c2->ObtemY() < c1->getCenterY());
+		canMove[2] = canMove[2] && (intern ? c2->ObtemX() < c1->getCenterX() : c2->ObtemX() > c1->getCenterX());
+		canMove[3] = canMove[3] && (intern ? c2->ObtemY() < c1->getCenterY() : c2->ObtemY() > c1->getCenterY());
 
 	}else{
 		canMove[0] = canMove[0] || intern;
@@ -219,33 +219,33 @@ void checkCollision(Circle *c1, Circle *c2, bool intern = false){
 	}
 }
 
-void checkCollisionJumpable(Circle *c1, Circle*c2, int i){
+void checkCollisionJumpable(Circle *c1, Player *c2, int i){
 	double distance = dist(c1, c2);
 
-	if(above && aboveI != i){
+	if(c2->EstaAcima() && aboveI != i){
 		return;
 	}
 
-	if(!inJump && !above){
+	if(!player->EstaPulando() && !player->EstaAcima()){
 		checkCollision(c1, c2);
 	}else{
-		if(distance < c1->getRadius() + c2->getRadius()){
-			above = true;
+		if(distance < c1->getRadius() + c2->ObtemRaio()){
+			player->DeterminaAcima(true);
 			aboveI = i;
-			if(inJump){
-				canMove[0] = canMove[0] || ( c2->getCenterX() > c1->getCenterX());
-				canMove[1] = canMove[1] || ( c2->getCenterY() > c1->getCenterY());
-				canMove[2] = canMove[2] || ( c2->getCenterX() < c1->getCenterX());
-				canMove[3] = canMove[3] || ( c2->getCenterY() < c1->getCenterY());
+			if(player->EstaPulando()){
+				canMove[0] = canMove[0] || ( c2->ObtemX() > c1->getCenterX());
+				canMove[1] = canMove[1] || ( c2->ObtemY() > c1->getCenterY());
+				canMove[2] = canMove[2] || ( c2->ObtemX() < c1->getCenterX());
+				canMove[3] = canMove[3] || ( c2->ObtemY() < c1->getCenterY());
 			} else {
-				canMove[0] = canMove[0] || ( c2->getCenterX() > c1->getCenterX());
-				canMove[1] = canMove[1] || ( c2->getCenterY() > c1->getCenterY());
-				canMove[2] = canMove[2] || ( c2->getCenterX() < c1->getCenterX());
-				canMove[3] = canMove[3] || ( c2->getCenterY() < c1->getCenterY());
+				canMove[0] = canMove[0] || ( c2->ObtemX() > c1->getCenterX());
+				canMove[1] = canMove[1] || ( c2->ObtemY() > c1->getCenterY());
+				canMove[2] = canMove[2] || ( c2->ObtemX() < c1->getCenterX());
+				canMove[3] = canMove[3] || ( c2->ObtemY() < c1->getCenterY());
 			}
 
 		} else {
-			above = false;
+			player->DeterminaAcima(false);
 			aboveI = -1;
 		}
 	}
@@ -253,34 +253,17 @@ void checkCollisionJumpable(Circle *c1, Circle*c2, int i){
 }
 
 void idle(void){
-	float delta = window->getWidth()/700;
-	
-	// Circle *ifMoved = new Circle(playerRadius, player->getCenterX(), player->getCenterY(), 0);
-
-	// if(keyFlags['a']){
-	// 		ifMoved->addCenterX(-delta);
-	// }
-	// if(keyFlags['s']){
-	// 		ifMoved->addCenterY(-delta);
-	// }
-	// if(keyFlags['d']){
-	// 		ifMoved->addCenterX(+delta);
-	// }
-	// if(keyFlags['w']){
-	// 		ifMoved->addCenterY(+delta);
-	// }
-
-	// checkCollision(arena[0], ifMoved, true);
-	// checkCollision(arena[1], ifMoved);
-	// for (list<Circle*>::iterator iter = highObstacles.begin(); iter != highObstacles.end(); ++iter)
-	// {
-	// 	checkCollision((*iter), ifMoved);
-	// }
-	//  int i = 0;
-	// for (list<Circle*>::iterator iter = lowObstacles.begin(); iter != lowObstacles.end(); ++iter, ++i)
-	// {
-	// 	checkCollisionJumpable((*iter), ifMoved, i);
-	// }
+	checkCollision(arena[0], player, true);
+	checkCollision(arena[1], player);
+	for (list<Circle*>::iterator iter = highObstacles.begin(); iter != highObstacles.end(); ++iter)
+	{
+		checkCollision((*iter), player);
+	}
+	 int i = 0;
+	for (list<Circle*>::iterator iter = lowObstacles.begin(); iter != lowObstacles.end(); ++iter, ++i)
+	{
+		checkCollisionJumpable((*iter), player, i);
+	}
 	
 	// checkJump();
 
@@ -313,11 +296,11 @@ void idle(void){
 	//Treat keyPress
     if(keyFlags[(int)('w')])
     {
-        player->MoveEmY(velJogador);
+        player->MoveEmY(velJogador, canMove);
     }
     if(keyFlags[(int)('s')])
     {
-        player->MoveEmY(-velJogador);
+        player->MoveEmY(-velJogador, canMove);
     }
     if(keyFlags[(int)('a')])
     {
