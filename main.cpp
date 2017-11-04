@@ -28,7 +28,8 @@ int aboveI = -1;
 double velTiro, velJogador;
 
 bool inJump = false;
-bool canMove[4];
+bool canMove;
+bool canMoveAbove;
 
 int jumpInitTime;
 
@@ -117,7 +118,7 @@ void readParams(char* fileName){
 					c->setColor(1, 1, 1);
 					arena[1] = c;
 				}else if(cor.compare("green") == 0){
-					player = new Player(x, -y, radius);
+					player = new Player(x, -y, radius, velTiro);
 				}
 			}
 		}
@@ -130,7 +131,8 @@ void initWindow(void)
 	{
 		keyFlags[i] = 0;
 	}
-	canMove[0] = canMove[1] = canMove[2] = canMove[3] = true;
+	canMove = true;
+	canMoveAbove = true;
 	 // select background color 
 	glClearColor (1, 1, 1, 0.0);
 	 // inicializar sistema de viz. 
@@ -151,6 +153,11 @@ void keyUp(unsigned char key, int x, int y){
 void passiveMotion(int x, int y){
 	player->RodaArma((int)((lastXMouse - x) * player->ObtemRaio() / window->getWidth()) * 8);
 	lastXMouse = x;
+}
+void mouse(int button, int state, int x, int y){
+	if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
+		player->Atira();
+	}
 }
 
 void drawCircle(Circle *circle){
@@ -175,6 +182,8 @@ void display(void)
 	 // Clear pixels 
 	glClear (GL_COLOR_BUFFER_BIT);
 	
+	list <Tiro*> tiros = player->ObtemTiros();
+
 	//Draw arena
 	drawCircle(arena[0]);
 	drawCircle(arena[1]);
@@ -189,6 +198,12 @@ void display(void)
 		drawCircle((*iter));
 	}
 
+	//Draw shots
+	for (list<Tiro*>::iterator iter = tiros.begin(); iter != tiros.end(); ++iter)
+	{
+		(*iter)->Desenha();
+	}
+
 	//Draw player
 	player->Desenha();
 
@@ -196,52 +211,54 @@ void display(void)
 	glutSwapBuffers();
 }
 
-double dist(Circle *c1, Player *c2){
-	double distance = sqrt(pow(c1->getCenterX() - c2->ObtemX(), 2) + pow(c1->getCenterY() - c2->ObtemY(), 2));
+double dist(Circle *c1, Circle *c2){
+	double distance = sqrt(pow(c1->getCenterX() - c2->getCenterX(), 2) + pow(c1->getCenterY() - c2->getCenterY(), 2));
 }
 
-void checkCollision(Circle *c1, Player *c2, bool intern = false){
+void checkCollision(Circle *c1, Circle *c2, bool intern = false){
 	double distance = dist(c1, c2);
 
-	bool freeMove = intern ? distance < c1->getRadius() - c2->ObtemRaio() : distance > c1->getRadius() + c2->ObtemRaio();
+	bool freeMove = intern ? distance < c1->getRadius() - c2->getRadius() : distance > c1->getRadius() + c2->getRadius();
 	
 	if(!freeMove){
-		canMove[0] = canMove[0] && (intern ? c2->ObtemX() > c1->getCenterX() : c2->ObtemX() < c1->getCenterX());
-		canMove[1] = canMove[1] && (intern ? c2->ObtemY() > c1->getCenterY() : c2->ObtemY() < c1->getCenterY());
-		canMove[2] = canMove[2] && (intern ? c2->ObtemX() < c1->getCenterX() : c2->ObtemX() > c1->getCenterX());
-		canMove[3] = canMove[3] && (intern ? c2->ObtemY() < c1->getCenterY() : c2->ObtemY() > c1->getCenterY());
+		canMove = canMove && (intern ? c2->getCenterX() > c1->getCenterX() : c2->getCenterX() < c1->getCenterX());
+		canMove = canMove && (intern ? c2->getCenterY() > c1->getCenterY() : c2->getCenterY() < c1->getCenterY());
+		canMove = canMove && (intern ? c2->getCenterX() < c1->getCenterX() : c2->getCenterX() > c1->getCenterX());
+		canMove = canMove && (intern ? c2->getCenterY() < c1->getCenterY() : c2->getCenterY() > c1->getCenterY());
 
 	}else{
-		canMove[0] = canMove[0] || intern;
-		canMove[1] = canMove[1] || intern;
-		canMove[2] = canMove[2] || intern;
-		canMove[3] = canMove[3] || intern;
+		canMove = canMove || intern;
 	}
 }
 
-void checkCollisionJumpable(Circle *c1, Player *c2, int i){
+bool collisionTiro(Circle *c, Tiro* t, bool intern = false){
+	double distance = sqrt(pow(c->getCenterX() - t->ObtemX(), 2) + pow(c->getCenterY() - t->ObtemY(), 2));
+	return !(intern ? distance < c->getRadius() - t->ObtemRaio() : distance > c->getRadius() + t->ObtemRaio());
+}
+
+void checkCollisionJumpable(Circle *c1, Circle *c2, int i){
 	double distance = dist(c1, c2);
 
-	if(c2->EstaAcima() && aboveI != i){
+	if(player->EstaAcima() && aboveI != i){
 		return;
 	}
 
 	if(!player->EstaPulando() && !player->EstaAcima()){
 		checkCollision(c1, c2);
 	}else{
-		if(distance < c1->getRadius() + c2->ObtemRaio()){
+		if(distance < c1->getRadius() + c2->getRadius()){
 			player->DeterminaAcima(true);
 			aboveI = i;
 			if(player->EstaPulando()){
-				canMove[0] = canMove[0] || ( c2->ObtemX() > c1->getCenterX());
-				canMove[1] = canMove[1] || ( c2->ObtemY() > c1->getCenterY());
-				canMove[2] = canMove[2] || ( c2->ObtemX() < c1->getCenterX());
-				canMove[3] = canMove[3] || ( c2->ObtemY() < c1->getCenterY());
+				canMoveAbove = canMoveAbove || ( c2->getCenterX() > c1->getCenterX());
+				canMoveAbove = canMoveAbove || ( c2->getCenterY() > c1->getCenterY());
+				canMoveAbove = canMoveAbove || ( c2->getCenterX() < c1->getCenterX());
+				canMoveAbove = canMoveAbove || ( c2->getCenterY() < c1->getCenterY());
 			} else {
-				canMove[0] = canMove[0] || ( c2->ObtemX() > c1->getCenterX());
-				canMove[1] = canMove[1] || ( c2->ObtemY() > c1->getCenterY());
-				canMove[2] = canMove[2] || ( c2->ObtemX() < c1->getCenterX());
-				canMove[3] = canMove[3] || ( c2->ObtemY() < c1->getCenterY());
+				canMoveAbove = canMoveAbove || ( c2->getCenterX() > c1->getCenterX());
+				canMoveAbove = canMoveAbove || ( c2->getCenterY() > c1->getCenterY());
+				canMoveAbove = canMoveAbove || ( c2->getCenterX() < c1->getCenterX());
+				canMoveAbove = canMoveAbove || ( c2->getCenterY() < c1->getCenterY());
 			}
 
 		} else {
@@ -253,17 +270,67 @@ void checkCollisionJumpable(Circle *c1, Player *c2, int i){
 }
 
 void idle(void){
-	checkCollision(arena[0], player, true);
-	checkCollision(arena[1], player);
+
+	float velocidade = 0;
+
+	if(keyFlags[(int)('w')])
+    {
+        velocidade = velJogador;
+    }
+    if(keyFlags[(int)('s')])
+    {
+        velocidade = -velJogador;
+    }
+
+	if(keyFlags[(int)('a')])
+    {
+        player->RodaPlayer(velJogador);
+    }
+    if(keyFlags[(int)('d')])
+    {
+        player->RodaPlayer(-velJogador);
+    }
+    if(keyFlags[(int)('p')])
+    {
+         player->Pula();
+    }
+
+	Circle *aux = new Circle(player->ObtemRaio(), player->tryToMoveX(velocidade), player->tryToMoveY(velocidade), 0);
+
+	list<Tiro*> tiros = player->ObtemTiros();
+
+	list<Tiro*> remove;
+
+	for (list<Tiro*>::iterator iter = tiros.begin(); iter != tiros.end(); ++iter)
+	{
+		if(collisionTiro(arena[0], (*iter), true) || collisionTiro(arena[1], (*iter))){
+			remove.push_back((*iter));
+		}
+	}
+
+	checkCollision(arena[0], aux, true);
+	checkCollision(arena[1], aux);
 	for (list<Circle*>::iterator iter = highObstacles.begin(); iter != highObstacles.end(); ++iter)
 	{
-		checkCollision((*iter), player);
+		checkCollision((*iter), aux);
 	}
 	 int i = 0;
 	for (list<Circle*>::iterator iter = lowObstacles.begin(); iter != lowObstacles.end(); ++iter, ++i)
 	{
-		checkCollisionJumpable((*iter), player, i);
+		for (list<Tiro*>::iterator iterT = tiros.begin(); iterT != tiros.end(); ++iterT){
+			if(collisionTiro((*iter), (*iterT))){
+				remove.push_back((*iterT));
+			}
+		}
+		checkCollisionJumpable((*iter), aux, i);
 	}
+
+	for (list<Tiro*>::iterator i = remove.begin(); i != remove.end(); ++i)
+	{
+		player->RemoveTiro((*i));
+	}
+
+    player->Move(velocidade, canMove && canMoveAbove);
 	
 	// checkJump();
 
@@ -294,26 +361,6 @@ void idle(void){
 	// 	}
 	// }
 	//Treat keyPress
-    if(keyFlags[(int)('w')])
-    {
-        player->MoveEmY(velJogador, canMove);
-    }
-    if(keyFlags[(int)('s')])
-    {
-        player->MoveEmY(-velJogador, canMove);
-    }
-    if(keyFlags[(int)('a')])
-    {
-        player->RodaPlayer(velJogador);
-    }
-    if(keyFlags[(int)('d')])
-    {
-        player->RodaPlayer(-velJogador);
-    }
-    if(keyFlags[(int)('p')])
-    {
-         player->Pula();
-    }
 	glutPostRedisplay();
 }
 
@@ -328,6 +375,7 @@ int main(int argc, char** argv){
 	glutCreateWindow ("trabalhocg");
 	initWindow();
 	glutPassiveMotionFunc(passiveMotion);
+	glutMouseFunc(mouse);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyPress);
 	glutKeyboardUpFunc(keyUp);

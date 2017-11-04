@@ -64,7 +64,6 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
             inJump = false;
         }
     }
-    double at = atan2(x, y);
     glPushMatrix();
 
         glTranslatef(x, y, 0);
@@ -116,7 +115,9 @@ void Player::DesenhaPlayer(GLfloat x, GLfloat y, GLfloat radius, GLfloat thetaLe
         
     glPopMatrix();
 
-    lastTime = glutGet(GLUT_ELAPSED_TIME);
+    GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
+    elapsedTime = currentTime - lastTime;
+    lastTime = currentTime;
 }
 
 void Player::RodaPlayer(GLfloat inc)
@@ -131,40 +132,29 @@ void Player::RodaArma(GLfloat inc)
     }
 }
 
-void Player::MoveEmX(GLfloat dx)
+GLfloat Player::tryToMoveX(GLfloat velocidade)
 {
-    GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
-    GLfloat elapsedTime = currentTime - lastTime;
-    lastTime = currentTime;
-    gX += dx * elapsedTime;
+    GLfloat xDelta = (velocidade * cos((90 + gThetaPlayer) * M_PI/180.0));
+    return gX + xDelta * elapsedTime;
 }
 
-void Player::MoveEmY(GLfloat dy, bool canMove[3])
+GLfloat Player::tryToMoveY(GLfloat velocidade)
 {
-    GLfloat currentTime = glutGet(GLUT_ELAPSED_TIME);
-    GLfloat elapsedTime = currentTime - lastTime;
-    lastTime = currentTime;
-    GLfloat yDelta = (dy + sin((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
-    GLfloat xDelta = (dy + cos((90 + gThetaPlayer) * M_PI/180.0)) * (dy/abs(dy));
-    if(xDelta < 0){
-        if(canMove[0]){
-            gX += xDelta;
-        }
-    } else {
-        if(canMove[1]){
-            gX += xDelta;
-        }
+    GLfloat yDelta = (velocidade * sin((90 + gThetaPlayer) * M_PI/180.0));
+    return gY + yDelta * elapsedTime;
+}
+
+void Player::Move(GLfloat velocidade, bool canMove)
+{
+    if(!canMove){
+        return;
     }
-    if(yDelta > 0){
-        if(canMove[2]){
-            gY += yDelta;
-        }
-    } else {
-        if(canMove[3]){
-            gY += yDelta;
-        }
-    }
-    gThetaLeg += dy * .04 * elapsedTime;
+
+    GLfloat yDelta = (velocidade * sin((90 + gThetaPlayer) * M_PI/180.0));
+    GLfloat xDelta = (velocidade * cos((90 + gThetaPlayer) * M_PI/180.0));
+    gX += xDelta * elapsedTime;
+    gY += yDelta * elapsedTime;
+    gThetaLeg += velocidade * .04 * elapsedTime;
 }
 
 void Player::Pula()
@@ -175,6 +165,11 @@ void Player::Pula()
     }
 
 }
+
+void Player::Atira(){
+    tiros.push_back(new Tiro(gX, gY, gThetaPlayer, gThetaGun, .8 * radius, .8 * gunWidth * radius, velocidadeTiro, inJumpScale, gunHeight * radius));
+}
+
 GLfloat Player::ObtemX(){
     return gX;
 }
@@ -185,6 +180,14 @@ GLfloat Player::ObtemY(){
 
 GLfloat Player::ObtemRaio(){
     return radius;
+}
+
+list<Tiro*> Player::ObtemTiros(){
+    return tiros;
+}
+
+void Player::RemoveTiro(Tiro* t){
+    tiros.remove(t);
 }
 
 bool Player::EstaPulando(){
